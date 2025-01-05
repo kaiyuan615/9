@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>退休規劃計算器</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>退休規劃計算器</h1>
+
+        <!-- 基本輸入 -->
+        <div class="form-group">
+            <label for="currentAge">1. 當前年齡：</label>
+            <input type="number" id="currentAge" placeholder="請輸入您的年齡" min="18" max="100">
+        </div>
+
+        <div class="form-group">
+            <label for="retirementAge">2. 退休年齡：</label>
+            <input type="number" id="retirementAge" placeholder="請輸入退休年齡" min="30" max="80">
+        </div>
+
+        <div class="form-group">
+            <label for="lifeExpectancy">3. 預期壽命：</label>
+            <input type="number" id="lifeExpectancy" placeholder="請輸入預期壽命" min="50" max="120">
+        </div>
+
+        <div class="form-group">
+            <label for="monthlyExpenses">4. 退休後每月生活開支：</label>
+            <input type="number" id="monthlyExpenses" placeholder="請輸入生活開支" min="0">
+        </div>
+
+        <div class="form-group">
+            <label for="considerInflation">5. 是否考慮通膨：</label>
+            <select id="considerInflation">
+                <option value="yes">是</option>
+                <option value="no">否</option>
+            </select>
+        </div>
+
+        <!-- 已準備金額 -->
+        <h2>二、退休已準備金額</h2>
+        <div class="form-group">
+            <label for="existingAssets">6. 自填資產：</label>
+            <input type="number" id="existingAssets" placeholder="請輸入已準備資產" min="0">
+        </div>
+
+        <div class="form-group">
+            <label for="socialInsurance">7. 社會保險收入：</label>
+            <select id="socialInsurance" onchange="toggleCustomInput()">
+                <option value="">請選擇</option>
+                <option value="17739">公教保：17,739元</option>
+                <option value="17120">勞保：17,120元</option>
+                <option value="custom">自行填寫</option>
+            </select>
+            <input type="number" id="customSocialInsurance" placeholder="請輸入自訂金額" style="display: none; margin-top: 10px;" min="0">
+        </div>
+
+        <!-- 缺口補足 -->
+        <h2>三、缺口補足</h2>
+        <div class="form-group">
+            <label for="investmentMode">8. 優先準備方式選擇：</label>
+            <select id="investmentMode">
+                <option value="lumpSum">一次投入</option>
+                <option value="monthlyContribution">每月分批投入</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="expectedReturn">9. 預期投資報酬率 (%)：</label>
+            <input type="number" id="expectedReturn" placeholder="請輸入投資報酬率" step="0.1" min="0">
+        </div>
+
+        <button onclick="calculateRetirementPlan()">計算退休規劃</button>
+
+        <h2>結果：</h2>
+        <p id="result">請填寫所有欄位，然後點擊計算。</p>
+    </div>
+
+    <script>
+        // 切換顯示自訂輸入框
+        function toggleCustomInput() {
+            const socialInsuranceSelect = document.getElementById("socialInsurance");
+            const customInput = document.getElementById("customSocialInsurance");
+
+            // 判斷是否選擇"自行填寫"選項
+            if (socialInsuranceSelect.value === "custom") {
+                customInput.style.display = "block"; // 顯示自填欄位
+                customInput.value = ""; // 清空自訂金額
+            } else {
+                customInput.style.display = "none"; // 隱藏自填欄位
+                customInput.value = socialInsuranceSelect.value; // 將選單值設為隱藏欄位的值
+            }
+        }
+
+        // 在計算時獲取社會保險收入
+        function getSocialInsuranceValue() {
+            const socialInsuranceSelect = document.getElementById("socialInsurance");
+            const customInput = document.getElementById("customSocialInsurance");
+
+            // 如果選擇"自行填寫"，使用自訂值；否則使用選單值
+            return parseFloat(customInput.style.display === "block" ? customInput.value : socialInsuranceSelect.value) || 0;
+        }
+
+        // 計算退休規劃
+        function calculateRetirementPlan() {
+            // 獲取所有輸入值
+            const currentAge = parseInt(document.getElementById("currentAge").value) || 0;
+            const retirementAge = parseInt(document.getElementById("retirementAge").value) || 0;
+            const lifeExpectancy = parseInt(document.getElementById("lifeExpectancy").value) || 0;
+            const monthlyExpenses = parseInt(document.getElementById("monthlyExpenses").value) || 0;
+            const considerInflation = document.getElementById("considerInflation").value;
+            const existingAssets = parseFloat(document.getElementById("existingAssets").value) || 0;
+            const socialInsurance = getSocialInsuranceValue();
+            const investmentMode = document.getElementById("investmentMode").value;
+            const expectedReturn = parseFloat(document.getElementById("expectedReturn").value) || 0;
+
+            // 計算退休所需金額
+            const retirementYears = retirementAge - currentAge;
+            const lifeYearsAfterRetirement = lifeExpectancy - retirementAge;
+            let totalExpenses = monthlyExpenses * 12 * lifeYearsAfterRetirement;
+
+            // 考慮通膨
+            if (considerInflation === "yes") {
+                const inflationRate = 0.02; // 假設通膨率為 2%
+                totalExpenses *= Math.pow(1 + inflationRate, retirementYears);
+            }
+
+            // 減去現有資產與社會保險收入
+            const requiredAmount = totalExpenses - (existingAssets + socialInsurance * 12 * lifeYearsAfterRetirement);
+
+            // 顯示結果
+            document.getElementById("result").innerHTML = `您需要額外準備：${requiredAmount.toFixed(2)}元。`;
+
+            // 進一步計算投資方式
+            if (investmentMode === "monthlyContribution") {
+                const monthlyContribution = requiredAmount / ((Math.pow(1 + expectedReturn / 100, retirementYears) - 1) / (expectedReturn / 100));
+                document.getElementById("result").innerHTML += `<br>如果您選擇每月分批投入，您需要每月投入：${monthlyContribution.toFixed(2)}元。`;
+            } else {
+                const lumpSumContribution = requiredAmount / Math.pow(1 + expectedReturn / 100, retirementYears);
+                document.getElementById("result").innerHTML += `<br>如果您選擇一次投入，您需要一次性投入：${lumpSumContribution.toFixed(2)}元。`;
+            }
+        }
+    </script>
+</body>
+</html>
